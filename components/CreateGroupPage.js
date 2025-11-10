@@ -1,4 +1,6 @@
-import { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
@@ -7,22 +9,29 @@ const CreateGroupPage = (props) => {
     const [error, setError] = useState('')
     const [groupName, setGroupName] = useState('');
     const [type, setType] = useState('');
-    const createGroup = () => {
-        // console.log(groupName)
-        // console.log(type)
-        if (groupName != '' && type != '') {
-            props.navigation.navigate("Home")
-        }
-        else {
-            if (groupName == '' && type == '') {
-                setError('Group name and type both are required!')
+
+    const createGroup = async () => {
+        try {
+            const token = await AsyncStorage.getItem('Token');
+            if (groupName !== '' && type !== '') {
+                const data = { name: groupName, currency: 'INR', category: type, icon: '🏖️' };
+
+                const res = await axios.post('https://split-application.onrender.com/api/v1/groups', data, { headers: { Authorization: `Bearer ${token}` } });
+                console.log(res.data);
+                props.navigation.navigate('Home');
+            } else {
+                if (groupName === '' && type === '') {
+                    setError('Group name and type both are required!');
+                } else if (groupName === '') {
+                    setError('Group name is required!');
+                } else if (type === '') {
+                    setError('Type is required!');
+                } else {
+                    setError('');
+                }
             }
-            else if (groupName == '') {
-                setError('Group name is required!')
-            }
-            else {
-                setError('Type is required!')
-            }
+        } catch (error) {
+            console.log(error.response?.data || error.message);
         }
     }
     return (
@@ -103,11 +112,16 @@ const styles = StyleSheet.create({
     selectedBtn: {
         backgroundColor: '#4bbb179a',
     },
-    error:{
-        color:"red",
-        textAlign:"center",
-        marginTop:moderateScale(5),
-        fontSize:moderateScale(17)
-    }
+    error: {
+        color: "red",
+        textAlign: "center",
+        marginTop: moderateScale(5),
+        fontSize: moderateScale(17)
+    },
+    img: {
+        width: scale(20),
+        height: verticalScale(20),
+    },
 })
 export default CreateGroupPage;
+

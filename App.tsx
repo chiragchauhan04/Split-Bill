@@ -4,6 +4,8 @@ import LoginPage from './components/LoginPage'
 import SignUpPage from './components/SignUpPage'
 import HomePage from './components/HomePage'
 import CreateGroupPage from './components/CreateGroupPage'
+import GroupDetailPage from './components/GroupDetailPage'
+import SettingsPage from './components/SettingsPage'
 
 const Stack = createNativeStackNavigator();
 const App = () => {
@@ -12,8 +14,10 @@ const App = () => {
       <Stack.Navigator>
         <Stack.Screen name="Login" component={LoginPage} />
         <Stack.Screen name="SignUp" component={SignUpPage} />
-        <Stack.Screen name="Home" options={{ headerBackVisible: false}} component={HomePage}/>
+        <Stack.Screen name="Home" options={{ headerBackVisible: false }} component={HomePage} />
         <Stack.Screen name="CreateGroup" component={CreateGroupPage} />
+        <Stack.Screen name="GroupDetail" component={GroupDetailPage} />
+        <Stack.Screen name="Settings" component={SettingsPage} />
       </Stack.Navigator>
     </NavigationContainer>
   )

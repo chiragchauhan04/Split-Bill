@@ -1,14 +1,20 @@
-import { Image, Pressable, StyleSheet, Text, TextInput, TouchableHighlight, View } from "react-native";
+import axios from "axios";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, TouchableHighlight, View } from "react-native";
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context"
 import { Dropdown } from "react-native-element-dropdown";
 import { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginPage = (props) => {
+    let userDetail;
     const [email, setEmail] = useState('');
     const [number, setNumber] = useState('');
     const [password, setPassword] = useState('');
     const [value, setValue] = useState('');
+    const [loader, setLoader] = useState(false);
+    const [error, setError] = useState('');
+
     const data = [
         { label: 'Select', value: 'select' },
         { label: 'Email Id', value: 'emailId' },
@@ -16,7 +22,32 @@ const LoginPage = (props) => {
     ]
 
     const userLogin = () => {
-        
+        // console.log(loginType);
+        if (value === "emailId") {
+            userDetail = { email: email, password: password }
+        } else {
+            userDetail = { mo: number, password: password }
+        }
+        // console.log(userDetail);
+        setLoader(true)
+        axios.post(`http://split-application.onrender.com/api/user/login`, userDetail)
+            .then((res) => {
+                console.log(res.data.token);
+                AsyncStorage.setItem("Token", res.data.token)
+                    .then(() => {
+                        console.log('token stored successfully');
+                        setLoader(false)
+                        props.navigation.navigate('Home')
+                    })
+                    .catch((error) => {
+                        console.log('Error:', error);
+                    });
+            })
+            .catch((error) => {
+                console.log(error);
+                setError("Enter correct email or mobile number and password!")
+                setLoader(false)
+            })
     }
     return (
         <SafeAreaProvider>
@@ -36,7 +67,7 @@ const LoginPage = (props) => {
                             valueField="value"
                             value={value}
                             onChange={item => {
-                                console.log(item.value)
+                                // console.log(item.value)
                                 setValue(item.value);
                             }} />
                     </View>
@@ -47,7 +78,7 @@ const LoginPage = (props) => {
                                     <Image source={require('../assets/images/email.png')} style={styles.img} />
                                     <Text style={styles.label}> Email Id </Text>
                                 </View>
-                                <TextInput style={styles.input} keyboardType="email-address" value={email} onChangeText={(text) => setEmail(text)}></TextInput>
+                                <TextInput style={styles.input} keyboardType="email-address" value={email} onChangeText={(text) => setEmail(text.toLocaleLowerCase())}></TextInput>
                             </View> : value === "mobileNo" ? <View>
                                 <View style={styles.labelContainer}>
                                     <Image source={require('../assets/images/iphone.png')} style={styles.img} />
@@ -70,6 +101,10 @@ const LoginPage = (props) => {
                         </View>
                         <TextInput style={styles.input} value={password} onChangeText={(text) => setPassword(text)}></TextInput>
                     </View>
+                    <Text style={styles.errorTxt}>{error}</Text>
+                    {
+                        loader === true ? <ActivityIndicator size="large"></ActivityIndicator> : null
+                    }
                     <Pressable onPress={() => userLogin()}>
                         <View style={[styles.input, styles.logInContainer]}>
                             <Image source={require('../assets/images/log-in.png')} style={styles.img} />
@@ -163,6 +198,11 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         borderBottomColor: "orange",
         borderBottomWidth: moderateScale(2)
-    }
+    },
+    errorTxt: {
+        color: 'red',
+        fontWeight: "bold",
+        fontSize: moderateScale(17)
+    },
 })
 export default LoginPage;

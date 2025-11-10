@@ -100,7 +100,7 @@ const SignUpPage = (props) => {
                                 <Image source={require('../assets/images/email.png')} style={styles.img} />
                                 <Text style={styles.label}> Email Id </Text>
                             </View>
-                            <TextInput keyboardType="email-address" style={styles.input} value={email} onChangeText={(text) => setEmail(text)}></TextInput>
+                            <TextInput keyboardType="email-address" style={styles.input} value={email} onChangeText={(text) => setEmail(text.toLowerCase())}></TextInput>
                             <Text style={styles.errorTxt}>{emailError}</Text>
                         </View>
                         <View>
