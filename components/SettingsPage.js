@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, Modal, Pressable, StyleSheet, Text, TextInput, View, } from "react-native";
+import { ActivityIndicator, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 
@@ -9,6 +9,8 @@ const SettingsPage = (props) => {
     const [data, setData] = useState(null);
     const [loader, setLoader] = useState(true);
     const [inviteModal, setInviteModal] = useState(false)
+    const [linkModal, setLinkModal] = useState(false)
+    const [link, setLink] = useState('')
     const [email, setEmail] = useState('')
 
     const getGroupDetail = async () => {
@@ -37,96 +39,122 @@ const SettingsPage = (props) => {
             const res = await axios.get(`https://split-application.onrender.com/api/v1/groups/${groupId}?email=${email}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             )
-            console.log(res)
+            console.log(res.data.data.inviteLink)
+            setLink(res.data.data.inviteLink)
             setInviteModal(false)
+            setLinkModal(true)
             setEmail('')
         }
         catch (error) {
             console.log(error)
         }
-
     }
+    const handleLink = async () => {
+        const supported = await Linking.canOpenURL(link);
+        if (!supported) {
+            await Linking.openURL(link);
+            setLinkModal(false)
+        } else {
+            await Linking.openURL(link);
+            setLinkModal(false)
+
+        }
+    };
 
     return (
         <SafeAreaProvider>
             <SafeAreaView style={styles.safeContainer}>
-                {loader ? (
-                    <View style={styles.loaderContainer}>
-                        <ActivityIndicator size="large" color="#414141ff" />
-                    </View>
-                ) : (
-                    <View style={styles.container}>
-                        <View style={styles.groupCard}>
-                            <View style={styles.iconContainer}>
-                                <Text style={styles.iconText}>{data?.icon}</Text>
-                            </View>
+                <ScrollView>
+                    {loader ? (
+                        <View style={styles.loaderContainer}>
+                            <ActivityIndicator size="large" color="#414141ff" />
+                        </View>
+                    ) : (
+                        <View style={styles.container}>
+                            <View style={styles.groupCard}>
+                                <View style={styles.iconContainer}>
+                                    <Text style={styles.iconText}>{data?.icon}</Text>
+                                </View>
 
-                            <View style={styles.groupInfo}>
-                                <Text style={styles.groupNameTxt}>{data?.name}</Text>
-                                <Pressable style={styles.editButton} onPress={() => console.log("Edit group name")}>
-                                    <Image source={require("../assets/images/pencil.png")} style={styles.editIcon} />
+                                <View style={styles.groupInfo}>
+                                    <Text style={styles.groupNameTxt}>{data?.name}</Text>
+                                    <Pressable style={styles.editButton} onPress={() => props.navigation.navigate('EditGroup')}>
+                                        <Image source={require("../assets/images/pencil.png")} style={styles.editIcon} />
+                                    </Pressable>
+                                </View>
+                            </View>
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.detailsHeader}>Group members</Text>
+                                <Pressable style={styles.detailRow} onPress={() => setInviteModal(true)}>
+                                    <Image source={require('../assets/images/link.png')} style={[styles.editIcon, { marginLeft: scale(10) }]} />
+                                    <Text style={styles.detailValue}>Invite via link</Text>
+                                </Pressable>
+
+                                <View>
+                                    {data?.members?.map((item, index) => (
+                                        <View key={index} style={styles.groupMemberContainer}>
+                                            <View>
+                                                <Text style={styles.memberIcon}>{data.icon}</Text>
+                                            </View>
+                                            <View style={{ paddingLeft: moderateScale(5) }}>
+                                                <Text>{item.user.name}</Text>
+                                                <Text>{item.user.email}</Text>
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.detailsHeader}>Advance settings</Text>
+                                <Pressable style={styles.detailRow}>
+                                    <Image source={require('../assets/images/log-in.png')} style={[styles.editIcon, { marginLeft: scale(10), tintColor: "red" }]} />
+                                    <Text style={[styles.detailValue, { color: "red", fontWeight: "700" }]}>Leave group</Text>
+                                </Pressable>
+                                <Pressable >
+                                    {
+                                        data?.members?.map((item, index) => (
+                                            <View key={index}>
+                                                {
+                                                    item.role === "admin" ?
+                                                        <View style={styles.detailRow}>
+                                                            <Image source={require('../assets/images/delete.png')} style={[styles.editIcon, { marginLeft: scale(10), tintColor: "red" }]} />
+                                                            <Text style={[styles.detailValue, { color: "red", fontWeight: "700" }]}>Delete group</Text>
+                                                        </View> : null
+                                                }
+                                            </View>
+                                        ))
+                                    }
                                 </Pressable>
                             </View>
                         </View>
-                        <View style={styles.detailsSection}>
-                            <Text style={styles.detailsHeader}>Group members</Text>
-                            <Pressable style={styles.detailRow} onPress={() => setInviteModal(true)}>
-                                <Image source={require('../assets/images/link.png')} style={[styles.editIcon, { marginLeft: scale(10) }]} />
-                                <Text style={styles.detailValue}>Invite via link</Text>
-                            </Pressable>
-
-                            <View style={styles.detailRow}>
-                                <Text style={styles.detailValue}>
-                                    {data?.members?.map((item, index) => (
-                                        <View key={index} style={styles.detailInsideRow}>
-                                            <View style={{flexDirection: "row",}}>
-                                                <Text style={styles.detailLabel}>{data.icon}</Text>
-                                                <Text>{item.user.name}</Text>
-                                            </View>
-                                            <Text>{item.user.email}</Text>
-                                        </View>
-                                    ))}
-                                </Text>
+                    )}
+                    <Modal transparent={true} visible={inviteModal} style={inviteModal} animationType="slide">
+                        <View style={styles.modalBackground}>
+                            <View style={styles.modalContainer}>
+                                <Text style={styles.modalTitle}>Invite via link</Text>
+                                <TextInput keyboardType="email-address" style={styles.input} placeholder="Enter email address" placeholderTextColor="#777" value={email} onChangeText={(text) => setEmail(text.toLowerCase())} />
+                                <Pressable style={styles.shareButton} onPress={() => inviteMemberApi()}>
+                                    <Text style={styles.shareButtonText}>Share Link</Text>
+                                </Pressable>
+                                <Pressable onPress={() => setInviteModal(false)}>
+                                    <Text style={styles.cancelText}>Cancel</Text>
+                                </Pressable>
                             </View>
                         </View>
-                        <View style={styles.detailsSection}>
-                            <Text style={styles.detailsHeader}>Advance settings</Text>
-                            <Pressable style={styles.detailRow}>
-                                <Image source={require('../assets/images/log-in.png')} style={[styles.editIcon, { marginLeft: scale(10), tintColor: "red" }]} />
-                                <Text style={[styles.detailValue, { color: "red", fontWeight: "700" }]}>Leave group</Text>
-                            </Pressable>
-                            <Pressable >
-                                {
-                                    data?.members?.map((item, index) => (
-                                        <View key={index}>
-                                            {
-                                                item.role === "admin" ?
-                                                    <View style={styles.detailRow}>
-                                                        <Image source={require('../assets/images/delete.png')} style={[styles.editIcon, { marginLeft: scale(10), tintColor: "red" }]} />
-                                                        <Text style={[styles.detailValue, { color: "red", fontWeight: "700" }]}>Delete group</Text>
-                                                    </View> : null
-                                            }
-                                        </View>
-                                    ))
-                                }
-                            </Pressable>
+                    </Modal>
+                    <Modal transparent={true} visible={linkModal} style={inviteModal} animationType="slide">
+                        <View style={styles.modalBackground}>
+                            <View style={styles.modalContainer}>
+                                <Pressable onPress={() => handleLink()}>
+                                    <Text style={styles.linkTxt}>{link}</Text>
+                                </Pressable>
+                                <Pressable onPress={() => setLinkModal(false)}>
+                                    <Text style={[styles.cancelText, { marginTop: moderateScale(5) }]}>Cancel</Text>
+                                </Pressable>
+                            </View>
                         </View>
-                    </View>
-                )}
-                <Modal transparent={true} visible={inviteModal} style={inviteModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
-                    <View style={styles.modalBackground}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Invite via link</Text>
-                            <TextInput keyboardType="email-address" style={styles.input} placeholder="Enter email address" placeholderTextColor="#777" value={email} onChangeText={(text) => setEmail(text.toLowerCase())} />
-                            <Pressable style={styles.shareButton} onPress={() => inviteMemberApi()}>
-                                <Text style={styles.shareButtonText}>Share Link</Text>
-                            </Pressable>
-                            <Pressable onPress={() => setInviteModal(false)}>
-                                <Text style={styles.cancelText}>Cancel</Text>
-                            </Pressable>
-                        </View>
-                    </View>
-                </Modal>
+                    </Modal>
+                </ScrollView>
             </SafeAreaView>
         </SafeAreaProvider>
     );
@@ -218,21 +246,29 @@ const styles = StyleSheet.create({
         borderRadius: moderateScale(3),
         backgroundColor: "#f0f0f0",
     },
-    detailInsideRow: {
+    groupMemberContainer: {
         flexDirection: "row",
-        // marginBottom: verticalScale(8),
-        // borderWidth:2
-        // paddingLeft: moderateScale(3),
-        // alignItems: "center",
-        // justifyContent: "space-between",
-        // borderWidth: 2,
-        // borderRadius: moderateScale(3),
-        // backgroundColor: "#f0f0f0",
+        alignItems: "center",
+        borderWidth: 2,
+        marginBottom: verticalScale(2),
+        borderRadius: moderateScale(3),
+        padding: moderateScale(3)
+    },
+    linkTxt: {
+        color: '#007AFF',
+        paddingBottom: 2,
     },
     detailLabel: {
         fontSize: moderateScale(30),
         backgroundColor: "#666",
         borderRadius: moderateScale(20),
+        // marginVertical: scale(10)
+    },
+    memberIcon: {
+        fontSize: moderateScale(30),
+        backgroundColor: "#666",
+        borderRadius: moderateScale(20),
+        width: scale(37)
         // marginVertical: scale(10)
     },
     detailValue: {

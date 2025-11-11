@@ -6,6 +6,7 @@ import HomePage from './components/HomePage'
 import CreateGroupPage from './components/CreateGroupPage'
 import GroupDetailPage from './components/GroupDetailPage'
 import SettingsPage from './components/SettingsPage'
+import EditGroupDetailPage from './components/EditGroupDetailPage'
 
 const Stack = createNativeStackNavigator();
 const App = () => {
@@ -18,6 +19,7 @@ const App = () => {
         <Stack.Screen name="CreateGroup" component={CreateGroupPage} />
         <Stack.Screen name="GroupDetail" component={GroupDetailPage} />
         <Stack.Screen name="Settings" component={SettingsPage} />
+        <Stack.Screen name="EditGroup" component={EditGroupDetailPage} />
       </Stack.Navigator>
     </NavigationContainer>
   )
