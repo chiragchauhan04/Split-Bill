@@ -4,6 +4,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context"
 import { Dropdown } from "react-native-element-dropdown";
 import { useState } from "react";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SignUpPage = (props) => {
     const [nameError, setNameError] = useState('')
@@ -60,12 +61,16 @@ const SignUpPage = (props) => {
         setLoader(true)
         axios.post(`http://split-application.onrender.com/api/user/signup`, detailOfUser)
             .then((res) => {
-                console.log(res.data);
-                if (res) {
-                    setLoader(false)
-                    console.log(res.data.user)
-                    props.navigation.navigate('Login')
-                }
+                console.log(res.data.user.id);
+                AsyncStorage.setItem("userId", res.data.user.id)
+                    .then((res) => {
+                        console.log("user id stored")
+                    })
+                    .catch((error) => {
+                        console.log(error)
+                    })
+                setLoader(false)
+                props.navigation.navigate('Login')
             })
             .catch((error) => {
                 console.log(error);

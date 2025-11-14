@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, Touch
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context"
 import { Dropdown } from "react-native-element-dropdown";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginPage = (props) => {
@@ -21,6 +21,16 @@ const LoginPage = (props) => {
         { label: 'Mobile No', value: 'mobileNo' },
     ]
 
+    useEffect(() => {
+        const getToken = async () => {
+            const token = await AsyncStorage.getItem("Token")
+            if (token) {
+                props.navigation.navigate("Home")
+            }
+        }
+        getToken()
+    }, [])
+
     const userLogin = () => {
         // console.log(loginType);
         if (value === "emailId") {
@@ -32,7 +42,7 @@ const LoginPage = (props) => {
         setLoader(true)
         axios.post(`http://split-application.onrender.com/api/user/login`, userDetail)
             .then((res) => {
-                console.log(res.data.token);
+                console.log(res.data);
                 AsyncStorage.setItem("Token", res.data.token)
                     .then(() => {
                         console.log('token stored successfully');

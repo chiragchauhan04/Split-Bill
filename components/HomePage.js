@@ -1,26 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context"
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
+import { groupContext } from "../providers/groupContext";
 
 const HomePage = (props) => {
-    const [groupDetail, setGroupDetail] = useState([])
-    const [loader, setLoader] = useState(true)
-    const callGroupApi = async () => {
-        try {
-            const token = await AsyncStorage.getItem('Token');
-            console.log(token)
-            const res = await axios.get(`https://split-application.onrender.com/api/v1/groups`, { headers: { Authorization: `Bearer ${token}` } })
-            console.log(res.data.data)
-            setGroupDetail(res.data.data)
-            setLoader(false)
-        }
-        catch (error) {
-            console.log(error.message)
-        }
-    }
+    const {loader, groupDetail, callGroupApi} = useContext(groupContext)
+
     useEffect(() => {
         callGroupApi()
     }, [])

@@ -1,35 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ActivityIndicator, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
+import { groupContext } from "../providers/groupContext";
 
 const SettingsPage = (props) => {
-    const [data, setData] = useState(null);
-    const [loader, setLoader] = useState(true);
+    const { loader, list, getOneGroupDetail } = useContext(groupContext)
     const [inviteModal, setInviteModal] = useState(false)
     const [linkModal, setLinkModal] = useState(false)
     const [link, setLink] = useState('')
     const [email, setEmail] = useState('')
 
-    const getGroupDetail = async () => {
-        const groupId = await AsyncStorage.getItem("GroupId");
-        const token = await AsyncStorage.getItem("Token");
-        try {
-            const res = await axios.get(`https://split-application.onrender.com/api/v1/groups/findone/${groupId}`,
-                { headers: { Authorization: `Bearer ${token}` } });
-            setData(res.data.data);
-            console.log(res.data.data._id)
-            setLoader(false);
-        } catch (error) {
-            console.log(error);
-            setLoader(false);
-        }
-    };
-
     useEffect(() => {
-        getGroupDetail();
+        getOneGroupDetail();
     }, []);
 
     const inviteMemberApi = async () => {
@@ -73,11 +58,11 @@ const SettingsPage = (props) => {
                         <View style={styles.container}>
                             <View style={styles.groupCard}>
                                 <View style={styles.iconContainer}>
-                                    <Text style={styles.iconText}>{data?.icon}</Text>
+                                    <Text style={styles.iconText}>{list?.icon}</Text>
                                 </View>
 
                                 <View style={styles.groupInfo}>
-                                    <Text style={styles.groupNameTxt}>{data?.name}</Text>
+                                    <Text style={styles.groupNameTxt}>{list?.name}</Text>
                                     <Pressable style={styles.editButton} onPress={() => props.navigation.navigate('EditGroup')}>
                                         <Image source={require("../assets/images/pencil.png")} style={styles.editIcon} />
                                     </Pressable>
@@ -91,14 +76,14 @@ const SettingsPage = (props) => {
                                 </Pressable>
 
                                 <View>
-                                    {data?.members?.map((item, index) => (
+                                    {list?.members?.map((item, index) => (
                                         <View key={index} style={styles.groupMemberContainer}>
                                             <View>
-                                                <Text style={styles.memberIcon}>{data.icon}</Text>
+                                                <Text style={styles.memberIcon}>{list.icon}</Text>
                                             </View>
                                             <View style={{ paddingLeft: moderateScale(5) }}>
-                                                <Text>{item.user.name}</Text>
-                                                <Text>{item.user.email}</Text>
+                                                <Text>{item.name}</Text>
+                                                <Text>{item.email}</Text>
                                             </View>
                                         </View>
                                     ))}
@@ -112,7 +97,7 @@ const SettingsPage = (props) => {
                                 </Pressable>
                                 <Pressable >
                                     {
-                                        data?.members?.map((item, index) => (
+                                        list?.members?.map((item, index) => (
                                             <View key={index}>
                                                 {
                                                     item.role === "admin" ?
