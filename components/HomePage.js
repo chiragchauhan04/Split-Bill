@@ -7,10 +7,12 @@ import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import { groupContext } from "../providers/groupContext";
 
 const HomePage = (props) => {
-    const {loader, groupDetail, callGroupApi} = useContext(groupContext)
+    const [name, setName] = useState('')
+    const { loader, groupDetail, callGroupApi } = useContext(groupContext)
 
     useEffect(() => {
         callGroupApi()
+        getUserDetail()
     }, [])
     const groupDetailFun = async (item) => {
         console.log(item._id)
@@ -22,7 +24,11 @@ const HomePage = (props) => {
             .catch((error) => {
                 console.log(error)
             })
+    }
 
+    const getUserDetail = async () => {
+        const Name = await AsyncStorage.getItem('UserName')
+        setName(Name)
     }
     return (
         <SafeAreaProvider>
@@ -36,7 +42,7 @@ const HomePage = (props) => {
                             <Pressable onPress={() => props.navigation.navigate("CreateGroup")}>
                                 <Image source={require('../assets/images/add-group.png')} style={styles.img}></Image>
                             </Pressable>
-                            <Text style={styles.headerTxt}>Welcome to SplitBill, Name!</Text>
+                            <Text style={styles.headerTxt}>Welcome to SplitBill, {name}!</Text>
                             <ScrollView>
                                 {
                                     groupDetail.length < 0 ?

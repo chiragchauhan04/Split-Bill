@@ -61,14 +61,7 @@ const SignUpPage = (props) => {
         setLoader(true)
         axios.post(`http://split-application.onrender.com/api/user/signup`, detailOfUser)
             .then((res) => {
-                console.log(res.data.user.id);
-                AsyncStorage.setItem("userId", res.data.user.id)
-                    .then((res) => {
-                        console.log("user id stored")
-                    })
-                    .catch((error) => {
-                        console.log(error)
-                    })
+                console.log(res.data);
                 setLoader(false)
                 props.navigation.navigate('Login')
             })

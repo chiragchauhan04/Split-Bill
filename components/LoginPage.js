@@ -43,7 +43,12 @@ const LoginPage = (props) => {
         axios.post(`http://split-application.onrender.com/api/user/login`, userDetail)
             .then((res) => {
                 console.log(res.data);
-                AsyncStorage.setItem("Token", res.data.token)
+                Promise.all([
+                    AsyncStorage.setItem("Token", res.data.token),
+                    AsyncStorage.setItem("UserId", res.data.user.id.toString()),
+                    AsyncStorage.setItem("Email", res.data.user.email),
+                    AsyncStorage.setItem("UserName", res.data.user.name),
+                ])
                     .then(() => {
                         console.log('token stored successfully');
                         setLoader(false)

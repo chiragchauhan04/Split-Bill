@@ -18,7 +18,11 @@ const CreateGroupPage = (props) => {
 
                 const res = await axios.post('https://split-application.onrender.com/api/v1/groups', data, { headers: { Authorization: `Bearer ${token}` } });
                 console.log(res.data);
-                props.navigation.navigate('Home');
+                // props.navigation.navigate('Home');
+                props.navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Home" }]
+                })
             } else {
                 if (groupName === '' && type === '') {
                     setError('Group name and type both are required!');

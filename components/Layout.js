@@ -10,11 +10,9 @@ const Layout = ({ children }) => {
 
 
   const callGroupApi = async () => {
-    // if (AsyncStorage.removeItem('Token')) {
+    // if (AsyncStorage.clear()) {
     //   props.navigation.navigate("Login")
     // }
-    const userId = await AsyncStorage.getItem('userId');
-    console.log("userId", userId)
     try {
       const token = await AsyncStorage.getItem('Token');
       console.log(token)

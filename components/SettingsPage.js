@@ -12,10 +12,18 @@ const SettingsPage = (props) => {
     const [linkModal, setLinkModal] = useState(false)
     const [link, setLink] = useState('')
     const [email, setEmail] = useState('')
+    const [isAdmin, setIsAdmin] = useState(false)
 
     useEffect(() => {
         getOneGroupDetail();
     }, []);
+
+
+    useEffect(() => {
+        if (list?.members) {
+            getUserDetail();   // Now check admin only after members are loaded
+        }
+    }, [list]);
 
     const inviteMemberApi = async () => {
         const groupId = await AsyncStorage.getItem('GroupId')
@@ -46,6 +54,57 @@ const SettingsPage = (props) => {
         }
     };
 
+
+    const getUserDetail = async () => {
+        const userId = await AsyncStorage.getItem('UserId')
+        console.log("userID", userId)
+
+        const adminUser = list.members.find(
+            member => member._id === userId
+        );
+
+        const isAdmin = adminUser?.role === "admin";
+        setIsAdmin(isAdmin)
+        // console.log(isAdmin)
+    }
+
+    const deleteGroup = async () => {
+        const groupId = await AsyncStorage.getItem('GroupId');
+        const token = await AsyncStorage.getItem('Token');
+        console.log("groupId", groupId)
+        try {
+            const res = await axios.delete(`https://split-application.onrender.com/api/v1/groups/${groupId}`,
+                { headers: { Authorization: `Bearer ${token}` } })
+            console.log("group deleted successfully")
+            props.navigation.reset({
+                index: 0,
+                routes: [{ name: "Home" }],
+            });
+        }
+        catch (error) {
+            console.log(error)
+        }
+    }
+
+    const memberLeave = async () => {
+        const token = await AsyncStorage.getItem("Token");
+        const GroupId = await AsyncStorage.getItem('GroupId');
+        console.log("groupId", GroupId)
+        console.log("token", token)
+        try {
+            const res = await axios.patch(`https://split-application.onrender.com/api/v1/groups/${GroupId}/leave`, {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            // console.log(res)
+            props.navigation.reset({
+                index: 0,
+                routes: [{ name: "Home" }]
+            })
+        }
+        catch (error) {
+            console.log(error)
+        }
+    }
     return (
         <SafeAreaProvider>
             <SafeAreaView style={styles.safeContainer}>
@@ -81,9 +140,14 @@ const SettingsPage = (props) => {
                                             <View>
                                                 <Text style={styles.memberIcon}>{list.icon}</Text>
                                             </View>
-                                            <View style={{ paddingLeft: moderateScale(5) }}>
-                                                <Text>{item.name}</Text>
-                                                <Text>{item.email}</Text>
+                                            <View style={styles.memberContainer}>
+                                                <View>
+                                                    <Text>{item.name}</Text>
+                                                    <Text>{item.email}</Text>
+                                                </View>
+                                                <View >
+                                                    <Text style={styles.memberRole}>{item.role}</Text>
+                                                </View>
                                             </View>
                                         </View>
                                     ))}
@@ -91,23 +155,17 @@ const SettingsPage = (props) => {
                             </View>
                             <View style={styles.detailsSection}>
                                 <Text style={styles.detailsHeader}>Advance settings</Text>
-                                <Pressable style={styles.detailRow}>
+                                <Pressable style={styles.detailRow} onPress={() => memberLeave()}>
                                     <Image source={require('../assets/images/log-in.png')} style={[styles.editIcon, { marginLeft: scale(10), tintColor: "red" }]} />
                                     <Text style={[styles.detailValue, { color: "red", fontWeight: "700" }]}>Leave group</Text>
                                 </Pressable>
-                                <Pressable >
+                                <Pressable onPress={() => deleteGroup()}>
                                     {
-                                        list?.members?.map((item, index) => (
-                                            <View key={index}>
-                                                {
-                                                    item.role === "admin" ?
-                                                        <View style={styles.detailRow}>
-                                                            <Image source={require('../assets/images/delete.png')} style={[styles.editIcon, { marginLeft: scale(10), tintColor: "red" }]} />
-                                                            <Text style={[styles.detailValue, { color: "red", fontWeight: "700" }]}>Delete group</Text>
-                                                        </View> : null
-                                                }
-                                            </View>
-                                        ))
+                                        isAdmin &&
+                                        <View style={styles.detailRow}>
+                                            <Image source={require('../assets/images/delete.png')} style={[styles.editIcon, { marginLeft: scale(10), tintColor: "red" }]} />
+                                            <Text style={[styles.detailValue, { color: "red", fontWeight: "700" }]}>Delete group</Text>
+                                        </View>
                                     }
                                 </Pressable>
                             </View>
@@ -140,8 +198,8 @@ const SettingsPage = (props) => {
                         </View>
                     </Modal>
                 </ScrollView>
-            </SafeAreaView>
-        </SafeAreaProvider>
+            </SafeAreaView >
+        </SafeAreaProvider >
     );
 };
 
@@ -195,6 +253,17 @@ const styles = StyleSheet.create({
         fontSize: moderateScale(22),
         fontWeight: "bold",
         color: "#222",
+    },
+    memberContainer: {
+        paddingLeft: moderateScale(5),
+        flexDirection: "row",
+        width: scale(245),
+        justifyContent: "space-between",
+    },
+    memberRole: {
+        verticalAlign: "middle",
+        fontWeight: "500",
+        color: "green",
     },
     editButton: {
         padding: moderateScale(6),
