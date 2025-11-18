@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, } from "react-native";
+import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import { groupContext } from "../providers/groupContext";
@@ -12,6 +12,7 @@ const SettingsPage = (props) => {
     const [linkModal, setLinkModal] = useState(false)
     const [link, setLink] = useState('')
     const [email, setEmail] = useState('')
+    const [error, setError] = useState('')
     const [isAdmin, setIsAdmin] = useState(false)
 
     useEffect(() => {
@@ -37,6 +38,7 @@ const SettingsPage = (props) => {
             setInviteModal(false)
             setLinkModal(true)
             setEmail('')
+            getOneGroupDetail()
         }
         catch (error) {
             console.log(error)
@@ -91,10 +93,15 @@ const SettingsPage = (props) => {
         const GroupId = await AsyncStorage.getItem('GroupId');
         console.log("groupId", GroupId)
         console.log("token", token)
+        // console.log(isAdmin);
+        let url;
+        if (isAdmin) {
+            url = `https://split-application.onrender.com/api/v1/groups/${GroupId}/admin-leave`;
+        } else {
+            url = `https://split-application.onrender.com/api/v1/groups/${GroupId}/leave`;
+        }
         try {
-            const res = await axios.patch(`https://split-application.onrender.com/api/v1/groups/${GroupId}/leave`, {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            )
+            const res = await axios.patch(url, {}, { headers: { Authorization: `Bearer ${token}` } })
             // console.log(res)
             props.navigation.reset({
                 index: 0,
@@ -103,6 +110,34 @@ const SettingsPage = (props) => {
         }
         catch (error) {
             console.log(error)
+        }
+    }
+
+    const adminLeaveMember = async (Id) => {
+        console.log(Id);
+        if (isAdmin) {
+            Alert.alert("Leave member", "Are you sure to leave this member from group!", [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Ok", onPress: async () => {
+                        const token = await AsyncStorage.getItem("Token");
+                        const GroupId = await AsyncStorage.getItem('GroupId');
+                        console.log("groupId", GroupId)
+                        // console.log("token", token)
+                        try {
+                            const res = await axios.patch(`https://split-application.onrender.com/api/v1/groups/${GroupId}/remove/${Id}`, {},
+                                { headers: { Authorization: `Bearer ${token}` } }
+                            )
+                            console.log("user leave successfully");
+                            getOneGroupDetail()
+                        }
+                        catch (error) {
+                            console.log(error);
+                            setError("Admin can't remove themselves with this method!")
+                        }
+                    }
+                }
+            ])
         }
     }
     return (
@@ -140,7 +175,7 @@ const SettingsPage = (props) => {
                                             <View>
                                                 <Text style={styles.memberIcon}>{list.icon}</Text>
                                             </View>
-                                            <View style={styles.memberContainer}>
+                                            <Pressable style={styles.memberContainer} onPress={() => adminLeaveMember(item._id)}>
                                                 <View>
                                                     <Text>{item.name}</Text>
                                                     <Text>{item.email}</Text>
@@ -148,10 +183,13 @@ const SettingsPage = (props) => {
                                                 <View >
                                                     <Text style={styles.memberRole}>{item.role}</Text>
                                                 </View>
-                                            </View>
+                                            </Pressable>
                                         </View>
                                     ))}
                                 </View>
+                                {
+                                    error && <Text style={styles.errorTxt}>{error}</Text>
+                                }
                             </View>
                             <View style={styles.detailsSection}>
                                 <Text style={styles.detailsHeader}>Advance settings</Text>
@@ -272,6 +310,12 @@ const styles = StyleSheet.create({
         width: scale(22),
         height: scale(22),
 
+    },
+    errorTxt: {
+        textAlign: "center",
+        fontSize: moderateScale(14),
+        color: "red",
+        fontWeight: "600"
     },
     detailsSection: {
         backgroundColor: "#fff",

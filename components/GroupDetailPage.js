@@ -7,9 +7,7 @@ import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import { groupContext } from "../providers/groupContext";
 
 const GroupDetailPage = (props) => {
-    const {list,loader,getOneGroupDetail} = useContext(groupContext)
-    // const [list, setList] = useState()
-    // const [loader, setLoader] = useState(true)
+    const { list, loader, getOneGroupDetail } = useContext(groupContext)
 
     useEffect(() => {
         getOneGroupDetail()
@@ -33,6 +31,9 @@ const GroupDetailPage = (props) => {
                                 <Text style={styles.groupNameTxt}>{list.name}</Text>
                             </View>
                         </View>
+                        <Pressable onPress={() => props.navigation.navigate("AddExpense")}>
+                            <Text style={styles.addExpenseBtn}>Add expense</Text>
+                        </Pressable>
                     </View>
                 }
             </SafeAreaView>
@@ -82,6 +83,16 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    
+    addExpenseBtn: {
+        borderWidth: moderateScale(2),
+        position: "absolute",
+        left: moderateScale(210),
+        top: moderateScale(250),
+        padding: moderateScale(8),
+        fontSize: moderateScale(18),
+        borderRadius: moderateScale(6),
+        backgroundColor:"skyblue"
+    },
+
 })
 export default GroupDetailPage;
