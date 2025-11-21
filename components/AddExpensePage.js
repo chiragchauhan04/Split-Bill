@@ -55,14 +55,22 @@ const AddExpensePage = (props) => {
     };
 
     const AddExpenseApi = async () => {
-        const uncheckedIds = Object.keys(checkedMembers)
-            .filter(id => checkedMembers[id] === false);
-        console.log("Unchecked IDs:", uncheckedIds);
+        const uncheckedIds = Object.keys(checkedMembers).filter(id => checkedMembers[id] === false);
+        const groupId = await AsyncStorage.getItem('GroupId');
+        const token = await AsyncStorage.getItem('Token');
+        // console.log(groupId)
+        // console.log(token)
         // console.log("radio", selectedId)
+        // console.log("Unchecked IDs:", uncheckedIds);
         // console.log("check", checkedMembers)
-        const data = { description, amount, "paidBy": selectedId, "excludedMembers": [uncheckedIds] }
+        const data = { description, amount, paidBy: selectedId, excludedMembers: [uncheckedIds] }
+        // console.log(data)
         try {
-            const res = await axios.create(`https://split-application.onrender.com/api/v1/groups/${groupId}/expenses`,data,)
+            const res = await axios.post(`https://split-application.onrender.com/api/v1/groups/${groupId}/expenses`, data,
+                { headers: { Authorization: `Bearer ${token}` } }
+            )
+            props.navigation.navigate("GroupDetail")
+            console.log(res)
         }
         catch (error) {
             console.log(error)
