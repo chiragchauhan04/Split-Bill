@@ -1,16 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import axios from "axios";
 import { useContext, useEffect, useState } from "react"
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context"
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import { groupContext } from "../providers/groupContext";
 
 const GroupDetailPage = (props) => {
     const [history, setHistory] = useState([])
+    const [summary, setSummary] = useState([])
+    const [settleUpData, setSettleUpData] = useState([])
+    const [showModal, setShowModal] = useState(false)
     const { list, loader, getOneGroupDetail } = useContext(groupContext)
 
     useEffect(() => {
+        summaryApi()
         getOneGroupDetail()
         expenseHistoryApi()
     }, [])
@@ -37,6 +41,59 @@ const GroupDetailPage = (props) => {
         // console.log(formatted);
         return formatted;
     }
+
+    const summaryApi = async () => {
+        const groupId = await AsyncStorage.getItem('GroupId');
+        const token = await AsyncStorage.getItem('Token');
+        try {
+            const res = await axios.get(`https://split-application.onrender.com/api/v1/groups/${groupId}/overall-summary`, { headers: { Authorization: `Bearer ${token}` } })
+            console.log("summary=>", res.data.data)
+            setSummary(res.data.data)
+        }
+        catch (error) {
+            console.log(error)
+        }
+    }
+    const alertBox = async (item) => {
+        const groupId = await AsyncStorage.getItem('GroupId');
+        const token = await AsyncStorage.getItem('Token');
+        console.log(item._id);
+        Alert.alert("Delete history", "Are you sure to delete this history?", [
+            {
+                text: "Cancel",
+                style: "cancel"
+            },
+            {
+                text: "Ok",
+                onPress: async () => {
+                    try {
+                        const res = await axios.delete(`https://split-application.onrender.com/api/v1/groups/${groupId}/${item._id}/expensehistory-delete`, { headers: { Authorization: `Bearer ${token}` } })
+                        expenseHistoryApi()
+                        console.log(res)
+                    }
+                    catch (error) {
+                        console.log(error)
+                    }
+                }
+            }
+        ])
+    }
+
+    const settleUp = async () => {
+        setShowModal(true)
+        const groupId = await AsyncStorage.getItem('GroupId');
+        const token = await AsyncStorage.getItem('Token');
+        try {
+            const res = await axios.get(`https://split-application.onrender.com/api/v1/groups/${groupId}/settleup-history`, { headers: { Authorization: `Bearer ${token}` } })
+            console.log("setttle", res.data.data)
+            setSettleUpData(res.data.data)
+
+        }
+        catch (error) {
+            console.log(error)
+        }
+    }
+
     return (
         <SafeAreaProvider>
             <SafeAreaView style={{ flex: 1, }}>
@@ -57,22 +114,42 @@ const GroupDetailPage = (props) => {
                                     <Text style={styles.groupNameTxt}>{list.name}</Text>
                                 </View>
                             </View>
+                            <Pressable onPress={() => settleUp()}>
+                                <Text style={styles.settleUpBtn}>Settle up</Text>
+                            </Pressable>
+                            {
+                                summary.length > 0 && <Text style={styles.label}>Summary:</Text>
+                            }
+                            <View style={styles.summaryContainer}>
+                                {
+                                    summary?.map((item, index) => (
+                                        <View key={index}>
+                                            <Text style={{ fontWeight: "500", }}>{item.name} {item.status} {item.amount}</Text>
+                                        </View>
+                                    ))
+                                }
+                            </View>
+                            {
+                                history.length > 0 && <Text style={styles.label}>History:</Text>
+                            }
                             <View style={styles.historyContainer}>
                                 {
-                                    history.map((item, index) => (
-                                        <View key={index} style={{ borderWidth: 2, marginBottom: 6, flexDirection: "row" }}>
-                                            <Text style={{ width: 40, borderWidth: 2 }}>{formattedDate(item.createdAt)}</Text>
-                                            <View style={{ flexDirection: "column" }}>
-                                                <Text>{item.description}</Text>
-                                                <Text>paid by {item.paidBy} {item.youPaid}</Text>
+                                    history?.map((item, index) => (
+                                        <Pressable onPress={() => alertBox(item)} key={index} style={styles.historySecContainer}>
+                                            <Text style={styles.date}>{formattedDate(item.createdAt)}</Text>
+                                            <View style={styles.rowContainer}>
+                                                <View>
+                                                    <Text style={styles.descriptionLabel}>{item.description}</Text>
+                                                    <Text>paid by {item.paidBy} {item.youPaid}</Text>
+                                                </View>
                                                 <View>
                                                     {
-                                                        item.youBorrowed ? <Text>you Borrowed {item.youBorrowed}</Text> :
-                                                            <Text>you Lent {item.youLent}</Text>
+                                                        item.youBorrowed ? <Text style={styles.borrowLabel}>you Borrowed {item.youBorrowed}</Text> :
+                                                            <Text style={styles.lentLabel}>you Lent {item.youLent}</Text>
                                                     }
                                                 </View>
                                             </View>
-                                        </View>
+                                        </Pressable>
                                     ))
                                 }
                             </View>
@@ -80,6 +157,26 @@ const GroupDetailPage = (props) => {
                         <Pressable onPress={() => props.navigation.navigate("AddExpense")}>
                             <Text style={styles.addExpenseBtn}>Add expense</Text>
                         </Pressable>
+                        <Modal transparent={true} animationType="slide" visible={showModal}>
+                            <View style={{ flex: 1, backgroundColor: "#fff" }}>
+                                <Pressable onPress={() => setShowModal(false)}>
+                                    <Text style={styles.cancelModal}>X</Text>
+                                </Pressable>
+                                {
+                                    settleUpData?.map((item, index) => (
+                                        <View key={item._id} style={styles.userRowContainer}>
+                                            <View>
+                                                <Text style={{fontSize:moderateScale(18),fontWeight:"bold"}}>{item.name}</Text>
+                                            </View>
+                                            <View>
+                                                <Text>{item.status}</Text>
+                                                <Text>{item.amount}</Text>
+                                            </View>
+                                        </View>
+                                    ))
+                                }
+                            </View>
+                        </Modal>
                     </View>
                 }
             </SafeAreaView>
@@ -143,7 +240,72 @@ const styles = StyleSheet.create({
     },
     historyContainer: {
         padding: moderateScale(10)
-    }
+    },
+    settleUpBtn: {
+        borderWidth: 2,
+        textAlign: "center",
+        margin: moderateScale(10),
+        backgroundColor: "green",
+        color: "#fff",
+        paddingVertical: moderateScale(6),
+        borderRadius: moderateScale(5),
+        fontSize: moderateScale(18),
+    },
+    historySecContainer: {
+        borderWidth: 2,
+        marginBottom: 6,
+        flexDirection: "row",
+        borderRadius: moderateScale(4),
+        padding: moderateScale(2),
+        backgroundColor: "#e7e7e7ff",
+    },
+    date: {
+        width: 35,
+        fontSize: moderateScale(12),
+    },
+    rowContainer: {
+        flex: 1,
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
+    descriptionLabel: {
+        fontWeight: "700",
+        fontSize: moderateScale(16),
+    },
+    borrowLabel: {
+        color: "red",
+        fontWeight: "500",
+        fontSize: moderateScale(12),
+    },
+    lentLabel: {
+        color: "green",
+        fontWeight: "500",
+        fontSize: moderateScale(12),
+    },
+    label: {
+        fontSize: moderateScale(19),
+        fontWeight: "600",
+        paddingHorizontal: moderateScale(10),
+    },
+    summaryContainer: {
+        paddingHorizontal: moderateScale(10),
+    },
+    cancelModal: {
+        position: 'absolute',
+        top: moderateScale(10),
+        right: moderateScale(10),
+        color: "red",
+        fontSize: moderateScale(30),
+        width: moderateScale(24),
+    },
+    userRowContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        padding: moderateScale(8),
+        marginTop: moderateScale(100),
+        backgroundColor:"#aaa4a4ff"
+    },
+
 
 })
 export default GroupDetailPage;
