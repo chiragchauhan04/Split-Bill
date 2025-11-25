@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import axios from "axios";
 import { useContext, useEffect, useState } from "react"
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context"
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import { groupContext } from "../providers/groupContext";
@@ -11,6 +11,9 @@ const GroupDetailPage = (props) => {
     const [summary, setSummary] = useState([])
     const [settleUpData, setSettleUpData] = useState([])
     const [showModal, setShowModal] = useState(false)
+    const [showPayment, setShowPayment] = useState(false)
+    const [paymentDetail, setPaymentDetail] = useState([])
+    const [paymentAmount, setPaymentAmount] = useState()
     const { list, loader, getOneGroupDetail } = useContext(groupContext)
 
     useEffect(() => {
@@ -57,7 +60,7 @@ const GroupDetailPage = (props) => {
     const alertBox = async (item) => {
         const groupId = await AsyncStorage.getItem('GroupId');
         const token = await AsyncStorage.getItem('Token');
-        console.log(item._id);
+        console.log(item);
         Alert.alert("Delete history", "Are you sure to delete this history?", [
             {
                 text: "Cancel",
@@ -68,6 +71,8 @@ const GroupDetailPage = (props) => {
                 onPress: async () => {
                     try {
                         const res = await axios.delete(`https://split-application.onrender.com/api/v1/groups/${groupId}/${item._id}/expensehistory-delete`, { headers: { Authorization: `Bearer ${token}` } })
+                        summaryApi()
+                        getOneGroupDetail()
                         expenseHistoryApi()
                         console.log(res)
                     }
@@ -82,16 +87,50 @@ const GroupDetailPage = (props) => {
     const settleUp = async () => {
         setShowModal(true)
         const groupId = await AsyncStorage.getItem('GroupId');
+        const userId = await AsyncStorage.getItem("UserId");
         const token = await AsyncStorage.getItem('Token');
         try {
-            const res = await axios.get(`https://split-application.onrender.com/api/v1/groups/${groupId}/settleup-history`, { headers: { Authorization: `Bearer ${token}` } })
+            const res = await axios.get(`https://split-application.onrender.com/api/v1/settlement/settle-summary/${groupId}`, { headers: { Authorization: `Bearer ${token}` } })
             console.log("setttle", res.data.data)
             setSettleUpData(res.data.data)
-
         }
         catch (error) {
             console.log(error)
         }
+    }
+
+    const paymentFun = async (item) => {
+        setShowPayment(true)
+        // console.log(item.amount);
+        setPaymentDetail(item)
+        setPaymentAmount(item?.amount.toString())
+        // console.log(item);
+    }
+
+    const settleUpApi = async () => {
+        const groupId = await AsyncStorage.getItem('GroupId');
+        const token = await AsyncStorage.getItem('Token');
+        const toUserId = paymentDetail.userId;
+        // console.log("g", groupId);
+        // console.log("t", token);
+        // console.log("u", toUserId);
+        const data = { toUserId: toUserId, amount: paymentAmount || paymentDetail.amount }
+        // console.log("d",data);
+        try {
+            const res = await axios.post(`https://split-application.onrender.com/api/v1/settlement/${groupId}/settle`,
+                data, { headers: { Authorization: `Bearer ${token}` } }
+            )
+            console.log(res);
+            summaryApi()
+            getOneGroupDetail()
+            expenseHistoryApi()
+            setShowModal(false)
+            setShowPayment(false)
+        }
+        catch (error) {
+            console.log(error);
+        }
+
     }
 
     return (
@@ -122,7 +161,7 @@ const GroupDetailPage = (props) => {
                             }
                             <View style={styles.summaryContainer}>
                                 {
-                                    summary?.map((item, index) => (
+                                    (summary || []).map((item, index) => (
                                         <View key={index}>
                                             <Text style={{ fontWeight: "500", }}>{item.name} {item.status} {item.amount}</Text>
                                         </View>
@@ -134,7 +173,7 @@ const GroupDetailPage = (props) => {
                             }
                             <View style={styles.historyContainer}>
                                 {
-                                    history?.map((item, index) => (
+                                    (history || []).map((item, index) => (
                                         <Pressable onPress={() => alertBox(item)} key={index} style={styles.historySecContainer}>
                                             <Text style={styles.date}>{formattedDate(item.createdAt)}</Text>
                                             <View style={styles.rowContainer}>
@@ -162,19 +201,41 @@ const GroupDetailPage = (props) => {
                                 <Pressable onPress={() => setShowModal(false)}>
                                     <Text style={styles.cancelModal}>X</Text>
                                 </Pressable>
-                                {
-                                    settleUpData?.map((item, index) => (
-                                        <View key={item._id} style={styles.userRowContainer}>
-                                            <View>
-                                                <Text style={{fontSize:moderateScale(18),fontWeight:"bold"}}>{item.name}</Text>
-                                            </View>
-                                            <View>
-                                                <Text>{item.status}</Text>
-                                                <Text>{item.amount}</Text>
-                                            </View>
+
+                                <View style={{ marginTop: moderateScale(80) }}>
+                                    {
+                                        settleUpData?.map((item, index) => (
+                                            <Pressable onPress={() => paymentFun(item)} key={index} style={styles.userRowContainer}>
+                                                <View>
+                                                    <Text style={{ fontSize: moderateScale(18), fontWeight: "bold" }}>{item.name}</Text>
+                                                </View>
+                                                <View>
+                                                    <Text>{item.status}</Text>
+                                                    <Text>{item.amount}</Text>
+                                                </View>
+                                            </Pressable>
+                                        ))
+                                    }
+                                </View>
+                            </View>
+                        </Modal>
+                        <Modal transparent={true} animationType="slide" visible={showPayment}>
+                            <View style={{ flex: 1, backgroundColor: "#fff" }}>
+                                <Pressable onPress={() => setShowPayment(false)}>
+                                    <Text style={styles.cancelModal}>X</Text>
+                                </Pressable>
+                                <View style={{ marginTop: moderateScale(70), padding: moderateScale(20) }}>
+                                    <View style={styles.insideContainerPay}>
+                                        <Text style={styles.amountTxtName}>You paid {paymentDetail.name}</Text>
+                                        <View style={styles.amountRowContainer}>
+                                            <Image source={require(`../assets/images/rupee.png`)} style={styles.rupeeIcon} />
+                                            <TextInput style={styles.amountInput} keyboardType="numeric" value={paymentAmount} onChangeText={(amount) => setPaymentAmount(amount)} />
                                         </View>
-                                    ))
-                                }
+                                        <Pressable onPress={() => settleUpApi()}>
+                                            <Text style={styles.btnPay}>Pay</Text>
+                                        </Pressable>
+                                    </View>
+                                </View>
                             </View>
                         </Modal>
                     </View>
@@ -302,10 +363,48 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         padding: moderateScale(8),
-        marginTop: moderateScale(100),
-        backgroundColor:"#aaa4a4ff"
+        marginTop: moderateScale(5),
+        backgroundColor: "#aaa4a4ff"
     },
-
-
+    amountInput: {
+        borderBottomWidth: moderateScale(2),
+        width: moderateScale(100),
+        fontSize: moderateScale(20),
+        height: moderateScale(44),
+        fontWeight: "bold",
+    },
+    insideContainerPay: {
+        borderWidth: 2,
+        borderRadius: moderateScale(10),
+        backgroundColor: "#d6d3d3ff",
+    },
+    rupeeIcon: {
+        width: moderateScale(35),
+        height: moderateScale(35),
+    },
+    amountRowContainer: {
+        flexDirection: "row",
+        alignSelf: "center",
+        marginTop: moderateScale(30),
+        // borderWidth: moderateScale(2),
+    },
+    amountTxtName: {
+        textAlign: "center",
+        fontSize: moderateScale(30),
+        fontWeight: "bold",
+    },
+    btnPay: {
+        alignSelf: "center",
+        textAlign: "center",
+        width: moderateScale(150),
+        backgroundColor: "green",
+        borderWidth: moderateScale(2),
+        borderRadius: moderateScale(10),
+        marginVertical: moderateScale(40),
+        paddingVertical: moderateScale(8),
+        fontSize: moderateScale(18),
+        fontWeight: "bold",
+        color: "#fff",
+    }
 })
 export default GroupDetailPage;
