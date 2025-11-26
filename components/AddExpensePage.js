@@ -9,37 +9,38 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const AddExpensePage = (props) => {
-    let userId, token;
+
     const [description, setDescription] = useState('')
-    const [amount, setAmount] = useState();
+    const [amount, setAmount] = useState('');
     const [optionModalVisible, setOptionModalVisible] = useState(false)
     const [checkboxModalVisible, setCheckboxModalVisible] = useState(false)
-    const [selectedId, setSelectedId] = useState();
+    const [selectedId, setSelectedId] = useState(null);
     const [checkedMembers, setCheckedMembers] = useState({});
 
-    const { list, loader, getOneGroupDetail } = useContext(groupContext)
+    const { list, getOneGroupDetail } = useContext(groupContext);
 
+    // Load userId
     const userIdToken = async () => {
-        userId = await AsyncStorage.getItem('UserId')
-        setSelectedId(userId)
-        console.log(userId)
-        token = await AsyncStorage.getItem('Token')
-        console.log(token)
-    }
-    useEffect(() => {
-        userIdToken()
-        getOneGroupDetail()
-    }, [])
+        let userId = await AsyncStorage.getItem('UserId');
+        setSelectedId(userId);
+    };
 
+    useEffect(() => {
+        userIdToken();
+        getOneGroupDetail();
+    }, []);
+
+    // Convert members into radio buttons
     const radioButtons = useMemo(() => (
         list?.members?.map(item => ({
             id: item._id,
             label: item.name,
-            value: item._id
-        }))), [list]);
+            value: item._id,
+        })) || []
+    ), [list]);
 
+    // Initialize all checkboxes as true
     useEffect(() => {
-
         if (list?.members) {
             const initialState = {};
             list.members.forEach(m => initialState[m._id] = true);
@@ -55,84 +56,132 @@ const AddExpensePage = (props) => {
     };
 
     const AddExpenseApi = async () => {
-        const uncheckedIds = Object.keys(checkedMembers).filter(id => checkedMembers[id] === false);
+        const uncheckedIds = Object.keys(checkedMembers).filter(id => !checkedMembers[id]);
+
         const groupId = await AsyncStorage.getItem('GroupId');
         const token = await AsyncStorage.getItem('Token');
-        // console.log(groupId)
-        // console.log(token)
-        // console.log("radio", selectedId)
-        // console.log("Unchecked IDs:", uncheckedIds);
-        // console.log("check", checkedMembers)
-        const data = { description, amount, paidBy: selectedId, excludedMembers: [uncheckedIds] }
-        // console.log(data)
+
+        const data = {
+            description,
+            amount: Number(amount),
+            paidBy: selectedId,
+            excludedMembers: uncheckedIds
+        };
+
         try {
-            const res = await axios.post(`https://split-application.onrender.com/api/v1/groups/${groupId}/expenses`, data,
+            const res = await axios.post(
+                `https://split-application.onrender.com/api/v1/groups/${groupId}/expenses`,
+                data,
                 { headers: { Authorization: `Bearer ${token}` } }
-            )
-            props.navigation.navigate("GroupDetail")
-            console.log(res)
+            );
+
+            props.navigation.navigate("GroupDetail");
         }
         catch (error) {
-            console.log(error)
+            console.log(error);
         }
-    }
+    };
 
     return (
         <SafeAreaProvider>
             <SafeAreaView style={{ flex: 1 }}>
                 <View style={styles.container}>
+
                     <View style={styles.card}>
                         <View style={styles.containerRow}>
                             <Image source={require('../assets/images/description.png')} style={styles.icons} />
-                            <TextInput placeholder='Enter a description' value={description} onChangeText={(text) => setDescription(text)} style={styles.input}></TextInput>
+                            <TextInput
+                                placeholder='Enter a description'
+                                value={description}
+                                onChangeText={setDescription}
+                                style={styles.input}
+                            />
                         </View>
+
                         <View style={styles.containerRow}>
                             <Image source={require('../assets/images/dollar.png')} style={styles.icons} />
-                            <TextInput placeholder='0.00' value={amount} onChangeText={(text) => setAmount(text)} keyboardType='numeric' style={styles.input}></TextInput>
+                            <TextInput
+                                placeholder='0.00'
+                                value={amount}
+                                onChangeText={setAmount}
+                                keyboardType='numeric'
+                                style={styles.input}
+                            />
                         </View>
+
                         <View style={styles.btnContainer}>
                             <Text>Paid by </Text>
-                            <Pressable onPress={() => setOptionModalVisible(true)}><Text style={styles.btns}>you</Text></Pressable>
+                            <Pressable onPress={() => setOptionModalVisible(true)}>
+                                <Text style={styles.btns}>you</Text>
+                            </Pressable>
                             <Text> and split </Text>
-                            <Pressable onPress={() => setCheckboxModalVisible(true)}><Text style={styles.btns}>equally</Text></Pressable>
+                            <Pressable onPress={() => setCheckboxModalVisible(true)}>
+                                <Text style={styles.btns}>equally</Text>
+                            </Pressable>
                         </View>
-                        <Pressable onPress={() => AddExpenseApi()}>
+
+                        <Pressable onPress={AddExpenseApi}>
                             <Text style={styles.btnDone}>Done</Text>
                         </Pressable>
                     </View>
+
+                    {/* Radio Modal */}
                     <Modal transparent={true} animationType='slide' visible={optionModalVisible}>
                         <View style={styles.modalRadio}>
                             <View style={styles.radio}>
-                                <Pressable onPress={() => setOptionModalVisible(false)}><Text style={styles.cancelModal}>X</Text></Pressable>
-                                <RadioGroup radioButtons={radioButtons} onPress={setSelectedId} selectedId={selectedId}
+
+                                <Pressable onPress={() => setOptionModalVisible(false)}>
+                                    <Text style={styles.cancelModal}>X</Text>
+                                </Pressable>
+
+                                <RadioGroup
+                                    radioButtons={radioButtons}
+                                    selectedId={selectedId}
+                                    onPress={(id) => setSelectedId(id)}
                                     containerStyle={{
                                         justifyContent: "space-between",
                                         alignItems: "center"
                                     }}
                                     labelStyle={{
-                                        // flex: 1,
                                         fontSize: moderateScale(16)
-                                    }} />
+                                    }}
+                                />
+
                             </View>
                         </View>
                     </Modal>
+
+                    {/* Checkbox Modal */}
                     <Modal transparent={true} animationType='slide' visible={checkboxModalVisible}>
                         <View style={styles.modalRadio}>
                             <View style={styles.radio}>
-                                <Pressable onPress={() => setCheckboxModalVisible(false)}><Text style={styles.cancelModal}>X</Text></Pressable>
-                                {
-                                    list?.members?.map((item, index) => (
-                                        <AdvancedCheckbox key={item._id} value={checkedMembers[item._id]} onValueChange={() => toggleCheckbox(item._id)} label={item.name} checkedColor="#007AFF" uncheckedColor="#ccc" size={24} />
-                                    ))
-                                }
+
+                                <Pressable onPress={() => setCheckboxModalVisible(false)}>
+                                    <Text style={styles.cancelModal}>X</Text>
+                                </Pressable>
+
+                                {list?.members?.map(item => (
+                                    <AdvancedCheckbox
+                                        key={item._id}
+                                        value={checkedMembers[item._id]}
+                                        onValueChange={() => toggleCheckbox(item._id)}
+                                        label={item.name}
+                                        checkedColor="#007AFF"
+                                        uncheckedColor="#ccc"
+                                        size={24}
+                                    />
+                                ))}
+
                             </View>
                         </View>
                     </Modal>
+
                 </View>
             </SafeAreaView>
         </SafeAreaProvider>
     )
 }
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -196,7 +245,7 @@ const styles = StyleSheet.create({
     },
     modalRadio: {
         flex: 1,
-        backgroundColor: "rgba(90, 86, 86, 0.5)",  // dim background
+        backgroundColor: "rgba(90, 86, 86, 0.5)",
         justifyContent: "center",
         alignItems: "center"
     },
@@ -207,4 +256,5 @@ const styles = StyleSheet.create({
         padding: moderateScale(90)
     }
 })
+
 export default AddExpensePage

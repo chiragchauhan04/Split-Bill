@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
         backgroundColor: "skyblue",
         borderRadius: moderateScale(6),
         borderWidth: moderateScale(2),
-        zIndex: 999,
+        zIndex: 10,
         elevation: 10,   // for Android
     },
     historyContainer: {

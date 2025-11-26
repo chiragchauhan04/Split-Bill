@@ -140,6 +140,22 @@ const SettingsPage = (props) => {
             ])
         }
     }
+    const Logout = async () => {
+        Alert.alert("Log out", "Are you sure to logout!", [
+            {
+                text: "Cancel",
+                style: "cancel"
+            },
+            {
+                text: "Ok",
+                onPress: async () => {
+                    console.log("logout")
+                    await AsyncStorage.clear()
+                    props.navigation.navigate("Login")
+                }
+            }
+        ])
+    }
     return (
         <SafeAreaProvider>
             <SafeAreaView style={styles.safeContainer}>
@@ -205,6 +221,10 @@ const SettingsPage = (props) => {
                                             <Text style={[styles.detailValue, { color: "red", fontWeight: "700" }]}>Delete group</Text>
                                         </View>
                                     }
+                                </Pressable>
+                                <Pressable style={styles.detailRow} onPress={() => Logout()}>
+                                    <Image source={require('../assets/images/sign-out.png')} style={[styles.editIcon, { marginLeft: scale(10), tintColor: "red" }]} />
+                                    <Text style={[styles.detailValue, { color: "red", fontWeight: "700", }]}>Log out</Text>
                                 </Pressable>
                             </View>
                         </View>
