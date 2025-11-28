@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
-import { Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { AdvancedCheckbox } from 'react-native-advanced-checkbox';
 import RadioGroup from 'react-native-radio-buttons-group';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
@@ -16,6 +16,9 @@ const AddExpensePage = (props) => {
     const [checkboxModalVisible, setCheckboxModalVisible] = useState(false)
     const [selectedId, setSelectedId] = useState(null);
     const [checkedMembers, setCheckedMembers] = useState({});
+    const [btnClicked, setBtnClicked] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
 
     const { list, getOneGroupDetail } = useContext(groupContext);
 
@@ -56,6 +59,9 @@ const AddExpensePage = (props) => {
     };
 
     const AddExpenseApi = async () => {
+        setBtnClicked(true)
+        setError('')
+        setLoading(true)
         const uncheckedIds = Object.keys(checkedMembers).filter(id => !checkedMembers[id]);
 
         const groupId = await AsyncStorage.getItem('GroupId');
@@ -75,9 +81,14 @@ const AddExpensePage = (props) => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
+            setBtnClicked(false)
+            setLoading(false)
             props.navigation.navigate("GroupDetail");
         }
         catch (error) {
+            setBtnClicked(false)
+            setLoading(false)
+            setError('Something gone wrong try again later!')
             console.log(error);
         }
     };
@@ -86,7 +97,6 @@ const AddExpensePage = (props) => {
         <SafeAreaProvider>
             <SafeAreaView style={{ flex: 1 }}>
                 <View style={styles.container}>
-
                     <View style={styles.card}>
                         <View style={styles.containerRow}>
                             <Image source={require('../assets/images/description.png')} style={styles.icons} />
@@ -120,9 +130,18 @@ const AddExpensePage = (props) => {
                             </Pressable>
                         </View>
 
-                        <Pressable onPress={AddExpenseApi}>
+                        <Pressable disabled={btnClicked} onPress={AddExpenseApi}>
                             <Text style={styles.btnDone}>Done</Text>
                         </Pressable>
+                        {
+                            error && <Text style={{ color: "red", textAlign: 'center' }}>{error}</Text>
+                        }
+                        {
+                            loading &&
+                            <View style={styles.loaderContainer}>
+                                <ActivityIndicator size="large" color="#414141ff" />
+                            </View>
+                        }
                     </View>
 
                     {/* Radio Modal */}
@@ -226,6 +245,15 @@ const styles = StyleSheet.create({
         backgroundColor: "skyblue",
         borderRadius: moderateScale(5),
         padding: moderateScale(10),
+    },
+    loaderContainer: {
+        position: "absolute",
+        top: 0,
+        bottom: -240,
+        left: 0,
+        right: 0,
+        justifyContent: "center",
+        alignItems: "center",
     },
     btns: {
         borderWidth: moderateScale(1.5),

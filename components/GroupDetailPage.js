@@ -12,6 +12,9 @@ const GroupDetailPage = (props) => {
     const [settleUpData, setSettleUpData] = useState([])
     const [showModal, setShowModal] = useState(false)
     const [showPayment, setShowPayment] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [btnClicked, setBtnClicked] = useState(false)
+    const [error, setError] = useState('')
     const [paymentDetail, setPaymentDetail] = useState([])
     const [paymentAmount, setPaymentAmount] = useState()
     const { list, loader, getOneGroupDetail } = useContext(groupContext)
@@ -86,16 +89,21 @@ const GroupDetailPage = (props) => {
 
     const settleUp = async () => {
         setShowModal(true)
+        setLoading(true)
         const groupId = await AsyncStorage.getItem('GroupId');
         const userId = await AsyncStorage.getItem("UserId");
         const token = await AsyncStorage.getItem('Token');
         try {
             const res = await axios.get(`https://split-application.onrender.com/api/v1/settlement/settle-summary/${groupId}`, { headers: { Authorization: `Bearer ${token}` } })
             console.log("setttle", res.data.data)
+            setError('')
+            setLoading(false)
             setSettleUpData(res.data.data)
         }
         catch (error) {
+            setLoading(false)
             console.log(error)
+            setError('Something gone wrong please try again later!')
         }
     }
 
@@ -108,6 +116,7 @@ const GroupDetailPage = (props) => {
     }
 
     const settleUpApi = async () => {
+        setBtnClicked(true)
         const groupId = await AsyncStorage.getItem('GroupId');
         const token = await AsyncStorage.getItem('Token');
         const toUserId = paymentDetail.userId;
@@ -121,6 +130,8 @@ const GroupDetailPage = (props) => {
                 data, { headers: { Authorization: `Bearer ${token}` } }
             )
             console.log(res);
+            setError('')
+            setBtnClicked(false)
             summaryApi()
             getOneGroupDetail()
             expenseHistoryApi()
@@ -129,10 +140,11 @@ const GroupDetailPage = (props) => {
         }
         catch (error) {
             console.log(error);
+            setError('Something gone wrong please try again later!')
+            setBtnClicked(false)
         }
 
     }
-
     return (
         <SafeAreaProvider>
             <SafeAreaView style={{ flex: 1, }}>
@@ -201,22 +213,30 @@ const GroupDetailPage = (props) => {
                                 <Pressable onPress={() => setShowModal(false)}>
                                     <Text style={styles.cancelModal}>X</Text>
                                 </Pressable>
-
-                                <View style={{ marginTop: moderateScale(80) }}>
-                                    {
-                                        settleUpData?.map((item, index) => (
-                                            <Pressable onPress={() => paymentFun(item)} key={index} style={styles.userRowContainer}>
-                                                <View>
-                                                    <Text style={{ fontSize: moderateScale(18), fontWeight: "bold" }}>{item.name}</Text>
-                                                </View>
-                                                <View>
-                                                    <Text>{item.status}</Text>
-                                                    <Text>{item.amount}</Text>
-                                                </View>
-                                            </Pressable>
-                                        ))
-                                    }
-                                </View>
+                                {
+                                    loading ?
+                                        <View style={styles.loaderContainer}>
+                                            <ActivityIndicator size="large" color="#414141ff" />
+                                            {
+                                                error && <Text style={{ color: "red" }}>{error}</Text>
+                                            }
+                                        </View> :
+                                        <View style={{ marginTop: moderateScale(80) }}>
+                                            {
+                                                settleUpData?.map((item, index) => (
+                                                    <Pressable onPress={() => paymentFun(item)} key={index} style={styles.userRowContainer}>
+                                                        <View>
+                                                            <Text style={{ fontSize: moderateScale(18), fontWeight: "bold" }}>{item.name}</Text>
+                                                        </View>
+                                                        <View>
+                                                            <Text>{item.status}</Text>
+                                                            <Text>{item.amount}</Text>
+                                                        </View>
+                                                    </Pressable>
+                                                ))
+                                            }
+                                        </View>
+                                }
                             </View>
                         </Modal>
                         <Modal transparent={true} animationType="slide" visible={showPayment}>
@@ -231,10 +251,18 @@ const GroupDetailPage = (props) => {
                                             <Image source={require(`../assets/images/rupee.png`)} style={styles.rupeeIcon} />
                                             <TextInput style={styles.amountInput} keyboardType="numeric" value={paymentAmount} onChangeText={(amount) => setPaymentAmount(amount)} />
                                         </View>
-                                        <Pressable onPress={() => settleUpApi()}>
+                                        <Pressable disabled={btnClicked} onPress={() => settleUpApi()}>
                                             <Text style={styles.btnPay}>Pay</Text>
                                         </Pressable>
                                     </View>
+                                </View>
+                                <View style={styles.loaderContainer}>
+                                    {
+                                        btnClicked && <ActivityIndicator size="large" color="#414141ff" />
+                                    }
+                                    {
+                                        error && <Text style={{ color: "red" }}>{error}</Text>
+                                    }
                                 </View>
                             </View>
                         </Modal>

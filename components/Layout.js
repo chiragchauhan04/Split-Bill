@@ -13,6 +13,7 @@ const Layout = ({ children }) => {
     // if (AsyncStorage.clear()) {
     //   props.navigation.navigate("Login")
     // }
+    setLoader(true)
     try {
       const token = await AsyncStorage.getItem('Token');
       console.log(token)
@@ -27,6 +28,7 @@ const Layout = ({ children }) => {
   }
 
   const getOneGroupDetail = async () => {
+    setLoader(true)
     const groupId = await AsyncStorage.getItem('GroupId');
     const token = await AsyncStorage.getItem('Token');
     console.log("groupPage===", groupId)
